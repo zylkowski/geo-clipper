@@ -1,6 +1,6 @@
 [package]
 name = "geo-clipper"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Gérald Lelong <gerald.lelong@easymov.fr>"]
 edition = "2018"
 license = "ISC"
@@ -12,5 +12,5 @@ keywords = ["geo", "polygon", "boolean", "offset"]
 categories = ["algorithms"]
 
 [dependencies]
-clipper-sys = { git = "https://github.com/zylkowski/clipper-sys", rev = "v1.0.0" }
+clipper-sys = { git = "https://github.com/zylkowski/clipper-sys", rev = "v2.0.0" }
 geo-types = "0.7.3"

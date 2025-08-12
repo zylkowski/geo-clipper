@@ -521,6 +521,7 @@ fn execute_offset_operation<T: ToOwnedPolygon + ?Sized>(
     jt: JoinType,
     et: EndType,
     factor: f64,
+    preserve_collinear: bool,
 ) -> MultiPolygon<f64> {
     let miter_limit = match jt {
         JoinType::Miter(limit) => limit,
@@ -549,6 +550,7 @@ fn execute_offset_operation<T: ToOwnedPolygon + ?Sized>(
             et.into(),
             clipper_polygons,
             delta,
+            preserve_collinear,
         )
     };
 
@@ -571,6 +573,7 @@ fn execute_offset_simplify_clean_operation<T: ToOwnedPolygon + ?Sized>(
     pft: PolyFillType,
     distance: f64,
     factor: f64,
+    preserve_collinear: bool,
 ) -> MultiLineString<f64> {
     let miter_limit = match jt {
         JoinType::Miter(limit) => limit,
@@ -601,6 +604,7 @@ fn execute_offset_simplify_clean_operation<T: ToOwnedPolygon + ?Sized>(
             delta,
             pft.into(),
             distance,
+            preserve_collinear,
         )
     };
 
@@ -620,6 +624,7 @@ fn execute_offset_operation_int<T: ToOwnedPolygonInt + ?Sized>(
     delta: f64,
     jt: JoinType,
     et: EndType,
+    preserve_collinear: bool,
 ) -> MultiPolygon<i64> {
     let miter_limit = match jt {
         JoinType::Miter(limit) => limit,
@@ -648,6 +653,7 @@ fn execute_offset_operation_int<T: ToOwnedPolygonInt + ?Sized>(
             et.into(),
             clipper_polygons,
             delta,
+            preserve_collinear,
         )
     };
 
@@ -671,6 +677,7 @@ fn execute_boolean_operation<
     subject_polygons: &T,
     clip_polygons: &U,
     factor: f64,
+    preserve_collinear: bool,
 ) -> R {
     let mut subject_owned = subject_polygons.to_polygon_owned(PolyType_ptSubject, factor);
     let mut clip_owned = clip_polygons.to_polygon_owned(PolyType_ptClip, factor);
@@ -691,6 +698,7 @@ fn execute_boolean_operation<
             clipper_polygons,
             PolyFillType_pftNonZero,
             PolyFillType_pftNonZero,
+            preserve_collinear,
         )
     };
 
@@ -713,6 +721,7 @@ fn execute_boolean_operation_int<
     clip_type: ClipType,
     subject_polygons: &T,
     clip_polygons: &U,
+    preserve_collinear: bool,
 ) -> R {
     let mut subject_owned = subject_polygons.to_polygon_owned(PolyType_ptSubject);
     let mut clip_owned = clip_polygons.to_polygon_owned(PolyType_ptClip);
@@ -733,6 +742,7 @@ fn execute_boolean_operation_int<
             clipper_polygons,
             PolyFillType_pftNonZero,
             PolyFillType_pftNonZero,
+            preserve_collinear,
         )
     };
 
@@ -804,21 +814,25 @@ pub trait Clipper {
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
     fn intersection<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
     fn union<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
     fn xor<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
     fn offset(
         &self,
@@ -826,6 +840,7 @@ pub trait Clipper {
         join_type: JoinType,
         end_type: EndType,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
     fn offset_simplify_clean(
         &self,
@@ -835,6 +850,7 @@ pub trait Clipper {
         pft: PolyFillType,
         distance: f64,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64>;
     fn simplify(&self, fill_type: PolyFillType, factor: f64) -> MultiLineString<f64>;
     fn clean(&self, distance: f64, factor: f64) -> MultiLineString<f64>;
@@ -847,14 +863,30 @@ pub trait ClipperInt {
     fn difference<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiPolygon<i64>;
     fn intersection<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiPolygon<i64>;
-    fn union<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(&self, other: &T) -> MultiPolygon<i64>;
-    fn xor<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(&self, other: &T) -> MultiPolygon<i64>;
-    fn offset(&self, delta: f64, join_type: JoinType, end_type: EndType) -> MultiPolygon<i64>;
+    fn union<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
+        &self,
+        other: &T,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64>;
+    fn xor<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
+        &self,
+        other: &T,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64>;
+    fn offset(
+        &self,
+        delta: f64,
+        join_type: JoinType,
+        end_type: EndType,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64>;
 }
 
 /// This trait defines the boolean and offset operations between open paths and polygons
@@ -867,11 +899,13 @@ pub trait ClipperOpen {
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64>;
     fn intersection<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64>;
     fn offset(
         &self,
@@ -879,6 +913,7 @@ pub trait ClipperOpen {
         join_type: JoinType,
         end_type: EndType,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64>;
 }
 
@@ -890,12 +925,20 @@ pub trait ClipperOpenInt {
     fn difference<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiLineString<i64>;
     fn intersection<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiLineString<i64>;
-    fn offset(&self, delta: f64, join_type: JoinType, end_type: EndType) -> MultiPolygon<i64>;
+    fn offset(
+        &self,
+        delta: f64,
+        join_type: JoinType,
+        end_type: EndType,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64>;
 }
 
 impl<U: ToOwnedPolygon + ClosedPoly + ?Sized> Clipper for U {
@@ -903,32 +946,48 @@ impl<U: ToOwnedPolygon + ClosedPoly + ?Sized> Clipper for U {
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_boolean_operation(ClipType_ctDifference, self, other, factor)
+        execute_boolean_operation(
+            ClipType_ctDifference,
+            self,
+            other,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn intersection<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_boolean_operation(ClipType_ctIntersection, self, other, factor)
+        execute_boolean_operation(
+            ClipType_ctIntersection,
+            self,
+            other,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn union<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_boolean_operation(ClipType_ctUnion, self, other, factor)
+        execute_boolean_operation(ClipType_ctUnion, self, other, factor, preserve_collinear)
     }
 
     fn xor<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_boolean_operation(ClipType_ctXor, self, other, factor)
+        execute_boolean_operation(ClipType_ctXor, self, other, factor, preserve_collinear)
     }
 
     fn offset(
@@ -937,8 +996,16 @@ impl<U: ToOwnedPolygon + ClosedPoly + ?Sized> Clipper for U {
         join_type: JoinType,
         end_type: EndType,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_offset_operation(self, delta * factor, join_type, end_type, factor)
+        execute_offset_operation(
+            self,
+            delta * factor,
+            join_type,
+            end_type,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn offset_simplify_clean(
@@ -949,8 +1016,18 @@ impl<U: ToOwnedPolygon + ClosedPoly + ?Sized> Clipper for U {
         pft: PolyFillType,
         distance: f64,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64> {
-        execute_offset_simplify_clean_operation(self, delta * factor, jt, et, pft, distance, factor)
+        execute_offset_simplify_clean_operation(
+            self,
+            delta * factor,
+            jt,
+            et,
+            pft,
+            distance,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn simplify(&self, fill_type: PolyFillType, factor: f64) -> MultiLineString<f64> {
@@ -966,27 +1043,45 @@ impl<U: ToOwnedPolygonInt + ClosedPoly + ?Sized> ClipperInt for U {
     fn difference<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiPolygon<i64> {
-        execute_boolean_operation_int(ClipType_ctDifference, self, other)
+        execute_boolean_operation_int(ClipType_ctDifference, self, other, preserve_collinear)
     }
 
     fn intersection<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiPolygon<i64> {
-        execute_boolean_operation_int(ClipType_ctIntersection, self, other)
+        execute_boolean_operation_int(ClipType_ctIntersection, self, other, preserve_collinear)
     }
 
-    fn union<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(&self, other: &T) -> MultiPolygon<i64> {
-        execute_boolean_operation_int(ClipType_ctUnion, self, other)
+    fn union<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
+        &self,
+        other: &T,
+
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64> {
+        execute_boolean_operation_int(ClipType_ctUnion, self, other, preserve_collinear)
     }
 
-    fn xor<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(&self, other: &T) -> MultiPolygon<i64> {
-        execute_boolean_operation_int(ClipType_ctXor, self, other)
+    fn xor<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
+        &self,
+        other: &T,
+
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64> {
+        execute_boolean_operation_int(ClipType_ctXor, self, other, preserve_collinear)
     }
 
-    fn offset(&self, delta: f64, join_type: JoinType, end_type: EndType) -> MultiPolygon<i64> {
-        execute_offset_operation_int(self, delta, join_type, end_type)
+    fn offset(
+        &self,
+        delta: f64,
+        join_type: JoinType,
+        end_type: EndType,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64> {
+        execute_offset_operation_int(self, delta, join_type, end_type, preserve_collinear)
     }
 }
 
@@ -995,16 +1090,30 @@ impl<U: ToOwnedPolygon + OpenPath + ?Sized> ClipperOpen for U {
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64> {
-        execute_boolean_operation(ClipType_ctDifference, self, other, factor)
+        execute_boolean_operation(
+            ClipType_ctDifference,
+            self,
+            other,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn intersection<T: ToOwnedPolygon + ClosedPoly + ?Sized>(
         &self,
         other: &T,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiLineString<f64> {
-        execute_boolean_operation(ClipType_ctIntersection, self, other, factor)
+        execute_boolean_operation(
+            ClipType_ctIntersection,
+            self,
+            other,
+            factor,
+            preserve_collinear,
+        )
     }
 
     fn offset(
@@ -1013,8 +1122,16 @@ impl<U: ToOwnedPolygon + OpenPath + ?Sized> ClipperOpen for U {
         join_type: JoinType,
         end_type: EndType,
         factor: f64,
+        preserve_collinear: bool,
     ) -> MultiPolygon<f64> {
-        execute_offset_operation(self, delta * factor, join_type, end_type, factor)
+        execute_offset_operation(
+            self,
+            delta * factor,
+            join_type,
+            end_type,
+            factor,
+            preserve_collinear,
+        )
     }
 }
 
@@ -1022,19 +1139,27 @@ impl<U: ToOwnedPolygonInt + OpenPath + ?Sized> ClipperOpenInt for U {
     fn difference<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiLineString<i64> {
-        execute_boolean_operation_int(ClipType_ctDifference, self, other)
+        execute_boolean_operation_int(ClipType_ctDifference, self, other, preserve_collinear)
     }
 
     fn intersection<T: ToOwnedPolygonInt + ClosedPoly + ?Sized>(
         &self,
         other: &T,
+        preserve_collinear: bool,
     ) -> MultiLineString<i64> {
-        execute_boolean_operation_int(ClipType_ctIntersection, self, other)
+        execute_boolean_operation_int(ClipType_ctIntersection, self, other, preserve_collinear)
     }
 
-    fn offset(&self, delta: f64, join_type: JoinType, end_type: EndType) -> MultiPolygon<i64> {
-        execute_offset_operation_int(self, delta, join_type, end_type)
+    fn offset(
+        &self,
+        delta: f64,
+        join_type: JoinType,
+        end_type: EndType,
+        preserve_collinear: bool,
+    ) -> MultiPolygon<i64> {
+        execute_offset_operation_int(self, delta, join_type, end_type, preserve_collinear)
     }
 }
 
@@ -1082,7 +1207,7 @@ mod tests {
             vec![],
         );
 
-        let result = subject.intersection(&clip, 1.0);
+        let result = subject.intersection(&clip, 1.0, false);
         assert_eq!(expected, result);
     }
 
@@ -1126,7 +1251,7 @@ mod tests {
             vec![],
         );
 
-        let result = subject.intersection(&clip);
+        let result = subject.intersection(&clip, false);
         assert_eq!(expected, result);
     }
 
@@ -1160,7 +1285,13 @@ mod tests {
             ])],
         );
 
-        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::ClosedPolygon, 1.0);
+        let result = subject.offset(
+            5.0,
+            JoinType::Miter(5.0),
+            EndType::ClosedPolygon,
+            1.0,
+            false,
+        );
         assert_eq!(expected, result)
     }
 
@@ -1194,7 +1325,7 @@ mod tests {
             ])],
         );
 
-        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::ClosedPolygon);
+        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::ClosedPolygon, false);
         assert_eq!(expected, result)
     }
 
@@ -1226,7 +1357,7 @@ mod tests {
             vec![],
         );
 
-        let result = subject.difference(&clip, 1.0);
+        let result = subject.difference(&clip, 1.0, false);
         assert_eq!(expected, result);
     }
 
@@ -1258,7 +1389,7 @@ mod tests {
             vec![],
         );
 
-        let result = subject.difference(&clip);
+        let result = subject.difference(&clip, false);
         assert_eq!(expected, result);
     }
 
@@ -1282,7 +1413,7 @@ mod tests {
             Coordinate { x: 400.0, y: 100.0 },
             Coordinate { x: 400.0, y: 400.0 },
         ])]);
-        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::OpenSquare, 1.0);
+        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::OpenSquare, 1.0, false);
         assert_eq!(expected, result);
     }
 
@@ -1306,7 +1437,7 @@ mod tests {
             Coordinate { x: 400, y: 100 },
             Coordinate { x: 400, y: 400 },
         ])]);
-        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::OpenSquare);
+        let result = subject.offset(5.0, JoinType::Miter(5.0), EndType::OpenSquare, false);
         assert_eq!(expected, result);
     }
 }
