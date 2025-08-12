@@ -54,7 +54,7 @@ use clipper_sys::{
     PolyFillType_pftPositive, PolyType, PolyType_ptClip, PolyType_ptSubject,
     Polygon as ClipperPolygon, Polygons, Vertice,
 };
-use geo_types::{CoordNum, Coordinate, LineString, MultiLineString, MultiPolygon, Polygon};
+use geo_types::{CoordNum, Coord as Coordinate, LineString, MultiLineString, MultiPolygon, Polygon};
 use std::convert::TryInto;
 
 #[derive(Clone, Copy)]
